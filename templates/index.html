@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CSV Manager</title>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>1. CSV Hochladen</h2>
+    <input type="file" id="fileInput" accept=".csv">
+    <button onclick="uploadFile()">Hochladen</button>
+
+    <hr style="margin: 20px 0;">
+
+    <h2>2. Hochgeladene Dateien</h2>
+    <select id="fileDropdown" onchange="loadFileContent()" style="padding: 5px; min-width: 200px;"></select>
+
+    <div id="tableContainer" style="margin-top: 20px;"></div>
+
+    <script>
+        async function loadFiles() {
+            const res = await fetch('/files');
+            const data = await res.json();
+            const select = document.getElementById('fileDropdown');
+            select.innerHTML = data.files.map(f => `<option value="${f}">${f}</option>`).join('');
+
+            if (data.files.length > 0) {
+                loadFileContent();
+            } else {
+                document.getElementById('tableContainer').innerHTML = '<p>Keine Dateien vorhanden.</p>';
+            }
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files[0]) return alert('Bitte Datei auswählen');
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const response = await fetch('/upload', { method: 'POST', body: formData });
+            if (!response.ok) {
+                const error = await response.json();
+                alert('Fehler: ' + error.detail);
+                return;
+            }
+            fileInput.value = '';
+            loadFiles();
+        }
+
+        async  function loadFileContent() {
+            const select = document.getElementById('fileDropdown');
+            const filename = select.value;
+            if (!filename) return;
+
+            const res = await fetch(`/files/${filename}`);
+            const result = await res.json();
+
+            const headers = result.headers;
+            const data = result.data;
+
+            const table = document.getElementById('tableContainer');
+            if (!data || data.length === 0) {
+                table.innerHTML = '<p>Keine Daten in der Datei.</p>';
+                return;
+            }
+
+            console.log('Headers:', headers);
+            let tableHtml = '<table border="1" style="border-collapse: collapse; width: 100%; font-size: 14px;">';
+            tableHtml += '<thead><tr style="background: #f0f0f0;">' +
+                headers.map(h => `<th style="padding: 8px; text-align: left;">${h}</th>`).join('') +
+                '</tr></thead>';
+
+            tableHtml += '<tbody>';
+            data.forEach(row => {
+                tableHtml += '<tr>' + headers.map((h, index) => `<td style="padding: 8px;">${row[index]}</td>`).join('') + '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+            table.innerHTML = tableHtml;
+        }
+        loadFiles();
+    </script>
+</body>
+</html>
