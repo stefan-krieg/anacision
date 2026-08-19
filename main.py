@@ -38,7 +38,7 @@ def list_files():
             original_name = parts[1] if len(parts) > 1 else f.name
 
             # Formatierte Zeit der letzten Änderung / Erstellung
-            mtime = datetime.fromtimestamp(f.stat().st_mtime).strftime("%d.%m.%Y %H:%M")
+            mtime = datetime.fromtimestamp(f.stat().st_mtime).strftime("%d.%m.%Y %H:%M:%S")
 
             file_list.append({
                 "id": f.name,

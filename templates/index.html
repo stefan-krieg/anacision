@@ -75,6 +75,11 @@
             if (!filename) return;
 
             const res = await fetch(`/files/${filename}`);
+            if (!res.ok) {
+                const err = await res.json();
+                alert('Fehler beim Laden: ' + (err.detail || 'Unbekannter Fehler'));
+                return;
+            }
             const result = await res.json();
 
             const headers = result.headers;
