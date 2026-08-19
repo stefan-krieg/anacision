@@ -1,3 +1,4 @@
+from datetime import datetime
 import csv
 import uuid
 from pathlib import Path
@@ -29,8 +30,23 @@ async def upload_csv(file: UploadFile):
 
 @app.get("/files")
 def list_files():
-    files = [f.name for f in UPLOAD_DIR.iterdir() if f.is_file()]
-    return {"files": files}
+    file_list = []
+    for f in UPLOAD_DIR.iterdir():
+        if f.is_file():
+            # Trennt die UUID ab und behält nur den ursprünglichen Dateinamen
+            parts = f.name.split("_", 1)
+            original_name = parts[1] if len(parts) > 1 else f.name
+
+            # Formatierte Zeit der letzten Änderung / Erstellung
+            mtime = datetime.fromtimestamp(f.stat().st_mtime).strftime("%d.%m.%Y %H:%M")
+
+            file_list.append({
+                "id": f.name,
+                "original_name": original_name,
+                "created_at": mtime
+            })
+
+    return {"files": file_list}
 
 @app.get("/files/{filename}")
 def get_file(filename: str):
@@ -46,7 +62,7 @@ def get_file(filename: str):
 
         reader = csv.reader(f, dialect=dialect)
         headers = next(reader)
-        data = list(reader)
+        data = [row for row in reader if any(field.strip() for field in row)]
 
     return {"headers": headers, "data": data}
 @app.get("/")

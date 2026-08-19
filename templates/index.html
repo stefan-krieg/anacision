@@ -21,13 +21,35 @@
             const res = await fetch('/files');
             const data = await res.json();
             const select = document.getElementById('fileDropdown');
-            select.innerHTML = data.files.map(f => `<option value="${f}">${f}</option>`).join('');
+            const files = data.files;
 
-            if (data.files.length > 0) {
-                loadFileContent();
-            } else {
+            if (!files || files.length === 0) {
+                select.innerHTML = '';
                 document.getElementById('tableContainer').innerHTML = '<p>Keine Dateien vorhanden.</p>';
+                return;
             }
+
+            // Zählen, wie oft jeder Ursprungsname vorkommt
+            const nameCounts = {};
+            files.forEach(f => {
+                nameCounts[f.original_name] = (nameCounts[f.original_name] || 0) + 1;
+            });
+
+            // Dropdown-Optionen bauen
+            select.innerHTML = files.map(f => {
+                const isDuplicate = nameCounts[f.original_name] > 1;
+
+                // Wenn Duplikat: Datum anhängen, sonst nur der Dateiname
+                const label = isDuplicate
+                    ? `${f.original_name} (${f.created_at})`
+                    : f.original_name;
+
+                // value bleibt die eindeutige ID (UUID_name.csv)
+                return `<option value="${f.id}">${label}</option>`;
+            }).join('');
+
+            // Erste Datei direkt anzeigen
+            loadFileContent();
         }
 
         async function uploadFile() {
@@ -72,7 +94,13 @@
 
             tableHtml += '<tbody>';
             data.forEach(row => {
-                tableHtml += '<tr>' + headers.map((h, index) => `<td style="padding: 8px;">${row[index]}</td>`).join('') + '</tr>';
+                tableHtml += '<tr>' + headers.map((h, index) => {
+                    const rawValue = row[index];
+                    const value = rawValue === null || rawValue === undefined ? '' : rawValue.trim();
+
+                    const displayValue = value !== '' ? value : '<span style="color: #ccc;">-</span>';
+                    return `<td style="padding: 8px;">${displayValue}</td>`
+                }).join('') + '</tr>';
             });
             tableHtml += '</tbody></table>';
             table.innerHTML = tableHtml;
